@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Code Snippets</title>
+
+<style>
+body{
+    background:#111;
+    color:white;
+    font-family:Arial;
+    text-align:center;
+}
+
+h1{
+    margin-top:30px;
+}
+
+.container{
+    width:300px;
+    margin:auto;
+}
+
+a{
+    display:block;
+    padding:15px;
+    margin:10px;
+    background:#222;
+    color:white;
+    text-decoration:none;
+    border-radius:8px;
+    transition:0.3s;
+}
+
+a:hover{
+    background:#444;
+}
+</style>
+</head>
+<body>
+
+<h1>Python Programs</h1>
+
+<div class="container">
+    <a href="#" onclick="copyCode('p1')">P1 - Word2Vec Similarity</a>
+    <a href="#" onclick="copyCode('p2')">P2 - PCA Visualization</a>
+    <a href="#" onclick="copyCode('p3')">P3 - Medical Word2Vec</a>
+    <a href="#" onclick="copyCode('p4')">P4 - GPT + Word2Vec</a>
+    <a href="#" onclick="copyCode('p5')">P5 - Paragraph Generator</a>
+    <a href="#" onclick="copyCode('p6')">P6 - Sentiment Analysis</a>
+    <a href="#" onclick="copyCode('p7')">P7 - Summarization</a>
+    <a href="#" onclick="copyCode('p8')">P8 - Cohere Analyzer</a>
+    <a href="#" onclick="copyCode('p9')">P9 - Wikipedia Parser</a>
+    <a href="#" onclick="copyCode('p10')">P10 - IPC Chatbot</a>
+</div>
+
+<script>
+
+const codes = {
+
+p1: `import gensim.downloader as api
+
+print("Loading word vectors...")
+wv = api.load("word2vec-google-news-300")
+
+def relate(a, b, c):
+    results = wv.most_similar(positive=[a, c], negative=[b], topn=5)
+    for word, score in results:
+        print(word, score)
+
+def sim(w1, w2):
+    print(wv.similarity(w1, w2))
+
+def nearby(word):
+    for w, s in wv.most_similar(word, topn=5):
+        print(w, s)
+
+relate("king", "man", "woman")
+sim("cat", "dog")
+nearby("happy")`,
+
+p2: `import gensim.downloader as api
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
+
+wv = api.load("word2vec-google-news-300")
+
+def show_similar(word):
+    for w, score in wv.most_similar(word, topn=5):
+        print(w, score)
+
+def plot_words(words):
+    coords = PCA(n_components=2).fit_transform([wv[w] for w in words])
+
+    plt.scatter(coords[:,0], coords[:,1])
+    for i, word in enumerate(words):
+        plt.annotate(word,(coords[i,0],coords[i,1]))
+    plt.show()
+
+show_similar("king")
+plot_words(["king","queen","prince","princess"])`,
+
+p3: `from gensim.models import Word2Vec
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import re
+
+corpus = [
+"The patient was diagnosed with diabetes and hypertension",
+"MRI scans reveal abnormalities in brain tissue"
+]
+
+data = [re.sub(r'[^a-z ]','',s.lower()).split() for s in corpus]
+
+model = Word2Vec(data, vector_size=10, window=3, min_count=1, epochs=100)
+
+print(model.wv.most_similar("treatment", topn=3))
+
+coords = TSNE(n_components=2, random_state=42, perplexity=5).fit_transform(model.wv.vectors)
+
+plt.scatter(coords[:,0], coords[:,1])
+
+for i, word in enumerate(model.wv.index_to_key):
+    plt.annotate(word,(coords[i,0],coords[i,1]))
+
+plt.show()`,
+
+p4: `import gensim.downloader as api
+from transformers import pipeline
+
+wv = api.load("glove-wiki-gigaword-100")
+gen = pipeline("text-generation", model="distilgpt2")
+
+def enrich(prompt, keyword):
+    sims = [w for w,_ in wv.most_similar(keyword, topn=3)]
+    return f"{prompt} Include related concepts such as {', '.join(sims)}."
+
+def ask(prompt):
+    return gen(prompt, max_new_tokens=100)[0]["generated_text"]
+
+p = "Explain the responsibilities of a king."
+print(ask(enrich(p,"king")))`,
+
+p5: `import gensim.downloader as api
+
+wv = api.load("glove-wiki-gigaword-100")
+
+word = input("Enter a word: ")
+
+sims = [w for w,_ in wv.most_similar(word, topn=5)]
+
+para = (
+f"The word '{word}' reminds people of {sims[0]} and {sims[1]}. "
+f"{sims[2]} is closely connected with {word}. "
+f"People also think about {sims[3]}. "
+f"{sims[4]} helps explain the meaning."
+)
+
+print(para)`,
+
+p6: `from transformers import pipeline
+
+analyzer = pipeline("sentiment-analysis")
+
+reviews = [
+"The product is amazing!",
+"I am disappointed."
+]
+
+results = analyzer(reviews)
+
+for s in results:
+    print("Sentiment:", s['label'])
+    print("Confidence", s['score'])`,
+
+p7: `from transformers import pipeline
+
+summarizer = pipeline("summarization", model="facebook/bart-large-cnn")
+
+def summarize_text(text):
+    summary = summarizer(
+        text,
+        max_length=150,
+        min_length=30,
+        do_sample=False
+    )
+    return summary[0]["summary_text"]
+
+long_text = "Artificial Intelligence is a rapidly evolving field..."
+print(summarize_text(long_text))`,
+
+p8: `import getpass
+from langchain_cohere import Cohere
+from langchain.prompts import PromptTemplate
+
+with open("Teaching.txt","r",encoding="utf-8") as f:
+    text = f.read()
+
+api_key = getpass.getpass("Cohere API Key: ")
+llm = Cohere(cohere_api_key=api_key, model="command-a-03-2025")
+
+prompt = PromptTemplate.from_template(
+"""Summarize and analyze the following text:
+{text}
+Summary:
+Key Takeaways (3 points):
+Sentiment (Positive/Negative/Neutral):
+"""
+)
+
+response = llm.invoke(prompt.format(text=text))
+print(response.content)`,
+
+p9: `import wikipediaapi
+from pydantic import BaseModel
+
+class Institution(BaseModel):
+    founder: str = "N/A"
+    founded: str = "N/A"
+    summary: str = "N/A"
+
+class Parser:
+    def parse(self, page):
+        lines = page.text.split("\\n")
+        return Institution(
+            founder=next((x for x in lines if "founder" in x.lower()), "N/A"),
+            founded=next((x for x in lines if "founded" in x.lower() or "established" in x.lower()), "N/A"),
+            summary=". ".join(page.summary.split(". ")[:4])
+        )
+
+wiki = wikipediaapi.Wikipedia(user_agent="MyApp", language="en")
+page = wiki.page(input("Enter Institution Name: "))
+
+if page.exists():
+    x = Parser().parse(page)
+    print("Founder:", x.founder)
+    print("Founded:", x.founded)
+    print("Summary:", x.summary)`,
+
+p10: `from langchain_cohere import ChatCohere
+import wikipediaapi
+
+llm = ChatCohere(
+    cohere_api_key=input("API Key: "),
+    model="command-a-03-2025"
+)
+
+wiki = wikipediaapi.Wikipedia(user_agent="IPCBot", language="en")
+ipc = wiki.page("Indian Penal Code").summary
+
+while True:
+    q = input("You: ")
+    prompt = f"Using this IPC information:\\n{ipc}\\n\\nQuestion: {q}"
+    print("Bot:", llm.invoke(prompt).content)`
+};
+
+function copyCode(program){
+    navigator.clipboard.writeText(codes[program]);
+    alert(program.toUpperCase()+" copied!");
+}
+
+</script>
+
+</body>
+</html>
